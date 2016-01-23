@@ -893,4 +893,9 @@ config  TOUCHSCREEN_COASIA
        tristate  "COASIA touchscreen driver"
        help
           COASIA touchscreen driver
+
+config TOUCHSCREEN_SSD253X_TS
+       tristate  "ssd253x touchscreen driver"
+       help
+         ssd253x touchscreen driver
 endif
