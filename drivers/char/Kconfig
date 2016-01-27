@@ -631,7 +631,5 @@ config TILE_SROM
 
 source "drivers/char/sunxi_g2d/Kconfig"
 
-source "drivers/char/sunxi_mem/Kconfig"
-
 endmenu
 
