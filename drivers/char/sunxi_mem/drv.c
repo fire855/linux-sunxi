@@ -27,6 +27,7 @@
 #include <linux/fs.h>
 #include <linux/mm.h>
 
+#include <mach/includes.h>
 #include "sunxi_physmem_i.h"
 #include <linux/sunxi_physmem.h>
 
