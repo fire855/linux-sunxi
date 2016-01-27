@@ -130,6 +130,7 @@ static inline void gpio_set_value_cansleep(unsigned gpio, int value)
 	WARN_ON(1);
 }
 
+#ifdef CONFIG_GPIO_SYSFS
 static inline int gpio_export(unsigned gpio, bool direction_may_change)
 {
 	/* GPIO can never have been requested or set as {in,out}put */
@@ -157,6 +158,7 @@ static inline void gpio_unexport(unsigned gpio)
 	/* GPIO can never have been exported */
 	WARN_ON(1);
 }
+#endif
 
 static inline int gpio_to_irq(unsigned gpio)
 {

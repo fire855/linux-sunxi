@@ -195,7 +195,7 @@ extern void gpio_unexport(unsigned gpio);
 
 #endif	/* CONFIG_GPIO_SYSFS */
 
-#else	/* !CONFIG_GPIOLIB */
+#elif defined(CONFIG_GENERIC_GPIO)
 
 static inline bool gpio_is_valid(int number)
 {
