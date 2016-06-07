@@ -19,24 +19,6 @@
  ******************************************************************************/
 #ifndef _RTW_EVENT_H_
 #define _RTW_EVENT_H_
-#include <drv_conf.h>
-#include <osdep_service.h>
-
-#ifndef CONFIG_RTL8711FW
-#ifdef PLATFORM_LINUX
-#include <wlan_bssdef.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26))
-#include <asm/semaphore.h>
-#else
-#include <linux/semaphore.h>
-#endif
-#include <linux/sem.h>
-#endif
-#else
-#include <wlan_bssdef.h>
-#endif//CONFIG_RTL8711FW
-
-
 
 #ifdef CONFIG_H2CLBK
 #include <h2clbk.h>
@@ -91,7 +73,8 @@ struct stassoc_event {
 
 struct stadel_event {
  unsigned char macaddr[6];
- unsigned char rsvd[2]; 
+ unsigned char rsvd[2]; //for reason
+ int mac_id;
 };
 
 struct addba_event

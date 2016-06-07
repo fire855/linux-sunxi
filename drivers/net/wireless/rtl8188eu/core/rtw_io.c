@@ -48,26 +48,11 @@ jackson@realtek.com.tw
 */
 
 #define _RTW_IO_C_
-#include <drv_conf.h>
-#include <osdep_service.h>
+
 #include <drv_types.h>
-#include <rtw_io.h>
-#include <osdep_intf.h>
 
 #if defined (PLATFORM_LINUX) && defined (PLATFORM_WINDOWS)
 #error "Shall be Linux or Windows, but not both!\n"
-#endif
-
-#ifdef CONFIG_SDIO_HCI
-#include <sdio_ops.h>
-#endif
-
-#ifdef CONFIG_USB_HCI
-#include <usb_ops.h>
-#endif
-
-#ifdef CONFIG_PCI_HCI
-#include <pci_ops.h>
 #endif
 
 #ifdef CONFIG_SDIO_HCI
@@ -192,6 +177,28 @@ int _rtw_writeN(_adapter *adapter, u32 addr ,u32 length , u8 *pdata)
 
 	return RTW_STATUS_CODE(ret);
 }
+
+#ifdef CONFIG_SDIO_HCI
+u8 _rtw_sd_f0_read8(_adapter *adapter, u32 addr)
+{
+	u8 r_val = 0x00;
+	struct io_priv *pio_priv = &adapter->iopriv;
+	struct intf_hdl *pintfhdl = &(pio_priv->intf);
+	u8 (*_sd_f0_read8)(struct intf_hdl *pintfhdl, u32 addr);
+
+	_func_enter_;
+	_sd_f0_read8 = pintfhdl->io_ops._sd_f0_read8;
+
+	if (_sd_f0_read8)
+		r_val = _sd_f0_read8(pintfhdl, addr);
+	else
+		DBG_871X_LEVEL(_drv_warning_, FUNC_ADPT_FMT" _sd_f0_read8 callback is NULL\n", FUNC_ADPT_ARG(adapter));
+
+	_func_exit_;
+	return r_val;
+}
+#endif /* CONFIG_SDIO_HCI */
+
 int _rtw_write8_async(_adapter *adapter, u32 addr, u8 val)
 {
 	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;
@@ -309,46 +316,44 @@ void _rtw_read_port_cancel(_adapter *adapter)
 
 	_read_port_cancel = pintfhdl->io_ops._read_port_cancel;
 
+	RTW_DISABLE_FUNC(adapter, DF_RX_BIT);
+
 	if(_read_port_cancel)
 		_read_port_cancel(pintfhdl);
-
 }
 
-void _rtw_write_port(_adapter *adapter, u32 addr, u32 cnt, u8 *pmem)
+u32 _rtw_write_port(_adapter *adapter, u32 addr, u32 cnt, u8 *pmem)
 {
 	u32 (*_write_port)(struct intf_hdl *pintfhdl, u32 addr, u32 cnt, u8 *pmem);
 	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;
 	struct io_priv *pio_priv = &adapter->iopriv;
 	struct	intf_hdl		*pintfhdl = &(pio_priv->intf);
+	u32 ret = _SUCCESS;
 
 	_func_enter_;
 
 	_write_port = pintfhdl->io_ops._write_port;
 	
-	_write_port(pintfhdl, addr, cnt, pmem);
+	ret = _write_port(pintfhdl, addr, cnt, pmem);
 
 	 _func_exit_;
 
+	return ret;
 }
 
-int _rtw_write_port_sync(_adapter *adapter, u32 addr, u32 cnt, u8 *pmem)
+u32 _rtw_write_port_and_wait(_adapter *adapter, u32 addr, u32 cnt, u8 *pmem, int timeout_ms)
 {
-	int (*_write_port_sync)(struct intf_hdl *pintfhdl, u32 addr, u32 cnt, u8 *pmem);
-	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;
-	struct io_priv *pio_priv = &adapter->iopriv;
-	struct	intf_hdl		*pintfhdl = &(pio_priv->intf);
 	int ret = _SUCCESS;
-	
-	_func_enter_;
+	struct xmit_buf *pxmitbuf = (struct xmit_buf *)pmem;
+	struct submit_ctx sctx;
 
-	_write_port_sync = pintfhdl->io_ops._write_port_sync;
+	rtw_sctx_init(&sctx, timeout_ms);
+	pxmitbuf->sctx = &sctx;
 
-	if(_write_port_sync)
-		ret = _write_port_sync(pintfhdl, addr, cnt, pmem);
-	else
-		ret = _FAIL;
+	ret = _rtw_write_port(adapter, addr, cnt, pmem);
 
-	 _func_exit_;
+	if (ret == _SUCCESS)
+		ret = rtw_sctx_wait(&sctx, __func__);
 
 	 return ret;
 }
@@ -361,52 +366,62 @@ void _rtw_write_port_cancel(_adapter *adapter)
 
 	_write_port_cancel = pintfhdl->io_ops._write_port_cancel;
 
+	RTW_DISABLE_FUNC(adapter, DF_TX_BIT);
+
 	if(_write_port_cancel)
 		_write_port_cancel(pintfhdl);
-
 }
-
-int rtw_init_io_priv(_adapter *padapter)
+int rtw_init_io_priv(_adapter *padapter, void (*set_intf_ops)(_adapter *padapter,struct _io_ops *pops))
 {
-	void (*set_intf_ops)(struct _io_ops	*pops);
 	struct io_priv	*piopriv = &padapter->iopriv;
 	struct intf_hdl *pintf = &piopriv->intf;
 
-	piopriv->padapter = padapter;
-	pintf->padapter = padapter;
-	pintf->pintf_dev = &padapter->dvobjpriv;
-
-
-#ifdef CONFIG_SDIO_HCI
-	set_intf_ops = &sdio_set_intf_ops;
-#endif //END OF CONFIG_SDIO_HCI
-
-#ifdef CONFIG_USB_HCI
-	set_intf_ops = &usb_set_intf_ops;
-#endif //END OF CONFIG_USB_HCI
-
-#ifdef CONFIG_PCI_HCI
-	set_intf_ops = &pci_set_intf_ops;
-#endif //END OF CONFIG_PCI_HCI
-
-
-	if(set_intf_ops==NULL)
+	if (set_intf_ops == NULL)
 		return _FAIL;
 
-	set_intf_ops(&pintf->io_ops);
+	piopriv->padapter = padapter;
+	pintf->padapter = padapter;
+	pintf->pintf_dev = adapter_to_dvobj(padapter);
+		
+	set_intf_ops(padapter,&pintf->io_ops);	
 
 	return _SUCCESS;
+}
 
+/*
+* Increase and check if the continual_io_error of this @param dvobjprive is larger than MAX_CONTINUAL_IO_ERR
+* @return _TRUE:
+* @return _FALSE:
+*/
+int rtw_inc_and_chk_continual_io_error(struct dvobj_priv *dvobj)
+{
+	int ret = _FALSE;
+	int value;
+	if( (value=ATOMIC_INC_RETURN(&dvobj->continual_io_error)) > MAX_CONTINUAL_IO_ERR) {
+		DBG_871X("[dvobj:%p][ERROR] continual_io_error:%d > %d\n", dvobj, value, MAX_CONTINUAL_IO_ERR);
+		ret = _TRUE;
+	} else {
+		//DBG_871X("[dvobj:%p] continual_io_error:%d\n", dvobj, value);
+	}
+	return ret;
+}
+
+/*
+* Set the continual_io_error of this @param dvobjprive to 0
+*/
+void rtw_reset_continual_io_error(struct dvobj_priv *dvobj)
+{
+	ATOMIC_SET(&dvobj->continual_io_error, 0);	
 }
 
 #ifdef DBG_IO
 
 u16 read_sniff_ranges[][2] = {
-	//{0x550, 0x551},
+	//{0x520, 0x523},
 }; 
 
 u16 write_sniff_ranges[][2] = {
-	//{0x550, 0x551},
+	//{0x520, 0x523},
 	//{0x4c, 0x4c},
 }; 
 

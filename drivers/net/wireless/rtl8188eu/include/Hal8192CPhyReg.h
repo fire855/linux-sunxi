@@ -169,6 +169,7 @@
 #define		rFPGA1_TxBlock				0x904	// Useless now
 #define		rFPGA1_DebugSelect			0x908	// Useless now
 #define		rFPGA1_TxInfo				0x90c	// Useless now // Status report??
+#define 	rS0S1_PathSwitch			0x948
 
 //
 // 5. PageA(0xA00)
@@ -402,12 +403,20 @@
 
 #define		RF_IQADJ_G1				0x01	// 
 #define		RF_IQADJ_G2				0x02	// 
+#define		RF_BS_PA_APSET_G1_G4		0x03
+#define		RF_BS_PA_APSET_G5_G8		0x04
 #define		RF_POW_TRSW				0x05	// 
 
 #define		RF_GAIN_RX					0x06	// 
 #define		RF_GAIN_TX					0x07	// 
 
 #define		RF_TXM_IDAC				0x08	// 
+#define		RF_IPA_G					0x09	// 
+#define		RF_TXBIAS_G				0x0A
+#define		RF_TXPA_AG					0x0B
+#define		RF_IPA_A					0x0C	// 
+#define		RF_TXBIAS_A				0x0D
+#define		RF_BS_PA_APSET_G9_G11	0x0E
 #define		RF_BS_IQGEN				0x0F	// 
 
 #define		RF_MODE1					0x10	// 
@@ -455,6 +464,18 @@
 #define		RF_TXPA_G1					0x31	// RF TX PA control
 #define		RF_TXPA_G2					0x32	// RF TX PA control
 #define		RF_TXPA_G3					0x33	// RF TX PA control
+#define 	RF_TX_BIAS_A				0x35
+#define 	RF_TX_BIAS_D				0x36
+#define 	RF_LOBF_9					0x38
+#define 	RF_RXRF_A3					0x3C	//	
+#define 	RF_TRSW 					0x3F
+
+#define 	RF_TXRF_A2					0x41
+#define 	RF_TXPA_G4					0x46	
+#define 	RF_TXPA_A4					0x4B	
+#define 	RF_0x52 					0x52
+#define 	RF_WE_LUT					0xEF	
+#define 	RF_S0S1 					0xB0
 
 //
 //Bit Mask
@@ -1066,10 +1087,6 @@
 #define		bMaskOFDM_D		0xffc00000
 #define		bMaskCCK			0x3f3f3f3f
 
-//for PutRFRegsetting & GetRFRegSetting BitMask
-//#define		bMask12Bits               0xfffff	// RF Reg mask bits
-//#define		bMask20Bits               0xfffff	// RF Reg mask bits T65 RF
-#define 		bRFRegOffsetMask	0xfffff		
   		
 #define		bEnable			0x1	// Useless
 #define		bDisable		0x0
